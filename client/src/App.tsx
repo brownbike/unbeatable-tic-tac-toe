@@ -3,10 +3,18 @@ import "./App.css";
 
 // TODO: create enum for x|o
 
+async function calculateComputerMove(board: string[]) {
+  console.log("board", board);
+  const resp = await fetch("http://localhost:3000/calculate-move");
+  let data = await resp.json();
+  console.log("data: ", data);
+}
+
 function App() {
   const [isNewGame, setIsNewGame] = useState<boolean>(true);
   const [board, setBoard] = useState<string[]>(new Array(9).fill(""));
 
+  // NOTE: For simplicity sake, the human is always X and the computer is always O.
   function handlePlaySquare(e: React.MouseEvent<HTMLDivElement>) {
     setIsNewGame(false);
     try {
@@ -26,6 +34,8 @@ function App() {
         newBoard[index] = "x";
         // Update the board state
         setBoard(newBoard);
+
+        calculateComputerMove(newBoard);
       } else {
         throw new Error("Square id is undefined");
       }
