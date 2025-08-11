@@ -27,19 +27,20 @@
 
 ## Running the project
 
-### Install dependencies
-```
-cd client && npm i
-cd server && cargo build
-```
+TODO: It's probably best to compile down to a server binary and run the client prod build
 
 ### Run the apps in dev mode
-```
-cd client
-npm run dev
-```
 
 ```
+# Install dependencies
+cd client && npm i
+cd server && cargo build
+
+# Run client
+cd client
+npm run dev
+
+# Run server
 cd server
 cargo run
 ```
