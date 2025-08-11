@@ -32,15 +32,19 @@ TODO: It's probably best to compile down to a server binary and run the client p
 ### Run the apps in dev mode
 
 ```
+# Switch to client dir
+cd client
+
 # Install dependencies
-cd client && npm i
-cd server && cargo build
+npm i
 
 # Run client
-cd client
 npm run dev
-
-# Run server
+```
+```
+# Switch to server dir
 cd server
+
+# Install dependencies and run server
 cargo run
 ```
