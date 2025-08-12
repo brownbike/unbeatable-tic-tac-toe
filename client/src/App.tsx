@@ -1,10 +1,12 @@
 import { useState } from "react";
 import "./App.css";
 
-// TODO: create enum for x|o
+type Game = {
+  board: string[];
+  status: string;
+};
 
 async function calculateComputerMove(board: string[]) {
-  console.log("board", board);
   let game = {
     board: board,
     status: "InProgress",
@@ -20,18 +22,21 @@ async function calculateComputerMove(board: string[]) {
       requestOptions
     );
     let data = await resp.json();
-    console.log("data: ", data);
+
+    return data as Game;
   } catch (e) {
     console.error("There was an error calculating the next move: ", e);
   }
 }
 
 function App() {
+  // TODO: maybe change this to status
   const [isNewGame, setIsNewGame] = useState<boolean>(true);
   const [board, setBoard] = useState<string[]>(new Array(9).fill(""));
+  const [turn, setTurn] = useState<"x" | "o">("x");
 
   // NOTE: For simplicity sake, the human is always X and the computer is always O.
-  function handlePlaySquare(e: React.MouseEvent<HTMLDivElement>) {
+  async function handleHumanTurn(e: React.MouseEvent<HTMLDivElement>) {
     setIsNewGame(false);
     try {
       // Pull the `data-id` of of the click event
@@ -46,12 +51,12 @@ function App() {
 
         // Copy the board
         let newBoard = [...board];
-        // Update the board with the users move
+        // Update the board with the users move, the human is always x
         newBoard[index] = "x";
         // Update the board state
         setBoard(newBoard);
-
-        calculateComputerMove(newBoard);
+        setTurn("o");
+        return newBoard;
       } else {
         throw new Error("Square id is undefined");
       }
@@ -59,6 +64,29 @@ function App() {
       console.error("There was an error selecting a square: ", e);
     }
   }
+
+  async function handleComputerTurn(newBoard: string[]) {
+    // Adding a setTimeout to make it a little less jarring.
+    setTimeout(async () => {
+      let data = await calculateComputerMove(newBoard);
+      if (data !== undefined) {
+        console.log("data: ", data.board);
+        setBoard(data.board);
+        setTurn("x");
+      }
+    }, 500);
+  }
+
+  async function handlePlayerAction(e: React.MouseEvent<HTMLDivElement>) {
+    let newBoard = await handleHumanTurn(e);
+    if (newBoard !== undefined) {
+      handleComputerTurn(newBoard);
+    } else {
+      throw new Error("Board is undefined");
+    }
+  }
+
+  const isHumanTurn = () => turn === "x";
 
   return (
     <>
@@ -71,7 +99,7 @@ function App() {
               <div
                 key={i}
                 className={`space ${space.toLowerCase()}`}
-                onClick={handlePlaySquare}
+                onClick={handlePlayerAction}
                 data-id={i}
               />
             );
@@ -84,14 +112,18 @@ function App() {
           - Computer is making a move (may need timeout)
           - Announce the winner
         */}
-        {isNewGame && (
-          <>
-            <p className="description">
-              Do you think you can beat a super smart computer at tic-tac-toe?
-            </p>
-            <p className="instructions">Click any square to begin.</p>
-          </>
-        )}
+        <div>
+          {isNewGame && (
+            <>
+              <p className="intro">
+                Do you think you can beat a super smart computer at tic-tac-toe?
+              </p>
+              <p className="instructions">Click any square to begin.</p>
+            </>
+          )}
+          {isHumanTurn() && <p className="instructions">It's X's turn</p>}
+          {!isHumanTurn() && <p className="instructions">It's O's turn</p>}
+        </div>
       </div>
     </>
   );
