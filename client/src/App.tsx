@@ -5,9 +5,25 @@ import "./App.css";
 
 async function calculateComputerMove(board: string[]) {
   console.log("board", board);
-  const resp = await fetch("http://localhost:3000/calculate-move");
-  let data = await resp.json();
-  console.log("data: ", data);
+  let game = {
+    board: board,
+    status: "InProgress",
+  };
+  try {
+    const requestOptions = {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(game),
+    };
+    const resp = await fetch(
+      "http://localhost:3000/calculate-move",
+      requestOptions
+    );
+    let data = await resp.json();
+    console.log("data: ", data);
+  } catch (e) {
+    console.error("There was an error calculating the next move: ", e);
+  }
 }
 
 function App() {
