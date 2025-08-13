@@ -42,12 +42,10 @@ async fn root() -> &'static str {
 }
 
 // NOTE: For simplicity sake, the human is always X and the computer is always O.
+// NOTE: I'd like to use &str, but ran into lifetime issues so, strings it is.
 async fn calculate_move(Json(payload): Json<Game>) -> (StatusCode, Json<Game>) {
     let mut board: Vec<String> = payload.board;
     let mut status: Status = Status::InProgress;
-
-    // TODO: break these out into functions.
-    // TODO: make the letters &str
 
     // Check for human winner
     if is_winner(&board, "x".to_string()) {
@@ -58,26 +56,16 @@ async fn calculate_move(Json(payload): Json<Game>) -> (StatusCode, Json<Game>) {
         // Computer wins :)
         info!("O wins!! Computers rule, humans drool");
         status = Status::OWins;
-    } else if is_draw(&board, (0..8).collect()) {
+    } else if is_draw(&board, (0..9).collect()) {
         // A draw :|
         info!("It's a Draw");
         status = Status::Draw;
-    } else if let Some(space) = can_win(&board, 'o'.to_string()) {
+    } else if let Some(space) = can_win(&board, "o".to_string()) {
         // We can win take the square!
         make_move(&mut board, space);
         status = Status::OWins;
-    } else if let Some(space) = can_win(&board, 'x'.to_string()) {
-        // If human can win on the next move, block them
+    } else if let Some(space) = best_move(&board) {
         make_move(&mut board, space);
-    } else if is_space_free(&board, 4) {
-        // The center is free, let's take it
-        make_move(&mut board, 4);
-    } else if let Some(rand_move) = choose_random_move(&board, vec![0, 6, 2, 8]) {
-        // Let's prioritize a corner space
-        make_move(&mut board, rand_move);
-    } else if let Some(rand_move) = choose_random_move(&board, vec![3, 7, 5, 1]) {
-        // Let's pick a random space
-        make_move(&mut board, rand_move);
     }
 
     let new_turn = Game {
@@ -89,7 +77,8 @@ async fn calculate_move(Json(payload): Json<Game>) -> (StatusCode, Json<Game>) {
 }
 
 fn can_win(board: &Vec<String>, letter: String) -> Option<usize> {
-    let available_moves = possible_moves(&board, (0..8).collect());
+    let available_moves = possible_moves(&board, (0..9).collect());
+
     for space in available_moves {
         let mut test_board = board.clone();
         test_board[space] = letter.clone();
@@ -103,8 +92,45 @@ fn can_win(board: &Vec<String>, letter: String) -> Option<usize> {
     None
 }
 
+fn best_move(board: &Vec<String>) -> Option<usize> {
+    // If human can win on the next move, block them
+    if let Some(space) = can_win(&board, "x".to_string()) {
+        info!("Human can win, block them!");
+        return Some(space);
+    }
+
+    // The center is free, let's take it
+    if is_space_free(&board, 4) {
+        return Some(4);
+    }
+
+    // If the human chooses the center square as their first move, pick a corner.
+    if !is_space_free(&board, 4) && possible_moves(&board, (0..9).collect()).len() == 8 {
+        // Let's prioritize a corner space
+        info!("The human chose the center square first");
+        return choose_corner(&board);
+    }
+
+    // Let's pick a random side space
+    if let Some(rand_move) = choose_random_move(&board, vec![3, 7, 5, 1]) {
+        info!("Pick a side");
+        return Some(rand_move);
+    }
+
+    // If only corners are available, choose a corner
+    return choose_corner(&board);
+}
+
+fn choose_corner(board: &Vec<String>) -> Option<usize> {
+    if let Some(rand_move) = choose_random_move(&board, vec![0, 6, 2, 8]) {
+        info!("Pick a corner");
+        return Some(rand_move);
+    }
+    None
+}
+
 fn make_move(board: &mut Vec<String>, space: usize) {
-    board[space] = 'o'.to_string();
+    board[space] = "o".to_string();
 }
 
 fn is_winner(board: &Vec<String>, letter: String) -> bool {

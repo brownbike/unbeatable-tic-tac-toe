@@ -50,7 +50,9 @@ function App() {
   const [turn, setTurn] = useState<"x" | "o">("x");
 
   useEffect(() => {
-    if (hasWinner()) {
+    // FIXME: put `hasWinner()` back
+
+    if (gameStatus === GameStatus.Draw || gameStatus === GameStatus.OWins) {
       setTimeout(() => {
         setBoard(new Array(9).fill(""));
         setGameStatus(GameStatus.NewGame);
