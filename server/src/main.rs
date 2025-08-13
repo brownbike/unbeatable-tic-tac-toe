@@ -44,46 +44,30 @@ async fn root() -> &'static str {
 // NOTE: For simplicity sake, the human is always X and the computer is always O.
 async fn calculate_move(Json(payload): Json<Game>) -> (StatusCode, Json<Game>) {
     let mut board: Vec<String> = payload.board;
+    let mut status: Status = Status::InProgress;
+
+    // TODO: break these out into functions.
+    // TODO: make the letters &str
 
     // Check for human winner
     if is_winner(&board, "x".to_string()) {
+        // Human won :(
         info!("X wins, this shouldn't happen");
-        let new_turn = Game {
-            board: board,
-            status: Status::XWins,
-        };
-
-        return (StatusCode::OK, Json(new_turn));
-    }
-
-    // Check for computer winner
-    if is_winner(&board, "0".to_string()) {
+        status = Status::XWins;
+    } else if is_winner(&board, "0".to_string()) {
+        // Computer wins :)
         info!("O wins!! Computers rule, humans drool");
-        let new_turn = Game {
-            board: board,
-            status: Status::OWins,
-        };
-
-        return (StatusCode::OK, Json(new_turn));
-    }
-
-    // Check for a draw
-    if is_draw(&board, (0..8).collect()) {
+        status = Status::OWins;
+    } else if is_draw(&board, (0..8).collect()) {
+        // A draw :|
         info!("It's a Draw");
-        let new_turn = Game {
-            board: board,
-            status: Status::Draw,
-        };
-
-        return (StatusCode::OK, Json(new_turn));
-    }
-
-    // TODO: break these out into functions.
-
-    // TODO: see if we can win with a move
-
-    // Check if human will win on the next move.
-    if let Some(space) = can_block_move(&board) {
+        status = Status::Draw;
+    } else if let Some(space) = can_win(&board, 'o'.to_string()) {
+        // We can win take the square!
+        make_move(&mut board, space);
+        status = Status::OWins;
+    } else if let Some(space) = can_win(&board, 'x'.to_string()) {
+        // If human can win on the next move, block them
         make_move(&mut board, space);
     } else if is_space_free(&board, 4) {
         // The center is free, let's take it
@@ -98,24 +82,24 @@ async fn calculate_move(Json(payload): Json<Game>) -> (StatusCode, Json<Game>) {
 
     let new_turn = Game {
         board: board,
-        status: Status::InProgress,
+        status: status,
     };
 
     (StatusCode::OK, Json(new_turn))
 }
 
-fn can_block_move(board: &Vec<String>) -> Option<usize> {
+fn can_win(board: &Vec<String>, letter: String) -> Option<usize> {
     let available_moves = possible_moves(&board, (0..8).collect());
     for space in available_moves {
         let mut test_board = board.clone();
-        test_board[space] = 'x'.to_string();
-        if is_winner(&test_board, 'x'.to_string()) {
-            info!("needs to be blocked!!!! {space}");
+        test_board[space] = letter.clone();
+        if is_winner(&test_board, letter.clone()) {
+            info!("{letter} will win with {space}");
             return Some(space);
         }
     }
 
-    info!("Nope. No block needed.");
+    info!("Nope. No winning move for {letter}");
     None
 }
 
