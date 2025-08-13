@@ -16,6 +16,10 @@
   padding: 2em;
 }
 
+.board.has-winner .space {
+  pointer-events: none;
+}
+
 .space {
   border: 1px solid white;
   cursor: pointer;
