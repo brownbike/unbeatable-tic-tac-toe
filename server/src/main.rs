@@ -92,6 +92,38 @@ fn can_win(board: &Vec<String>, letter: String) -> Option<usize> {
     None
 }
 
+fn can_fork(board: &Vec<String>, letter: String) -> Option<usize> {
+    let available_moves = possible_moves(&board, (0..9).collect());
+
+    for space in available_moves {
+        let mut test_board = board.clone();
+        test_board[space] = letter.clone();
+
+        let winning_positions = count_winning_positions(&test_board, letter.clone());
+        if winning_positions >= 2 {
+            info!("{letter} can fork at position {space} with {winning_positions} wins");
+            return Some(space);
+        }
+    }
+
+    None
+}
+
+fn count_winning_positions(board: &Vec<String>, letter: String) -> usize {
+    let available_moves = possible_moves(&board, (0..9).collect());
+    let mut winning_count = 0;
+
+    for space in available_moves {
+        let mut test_board = board.clone();
+        test_board[space] = letter.clone();
+        if is_winner(&test_board, letter.clone()) {
+            winning_count += 1;
+        }
+    }
+
+    winning_count
+}
+
 fn best_move(board: &Vec<String>) -> Option<usize> {
     // If human can win on the next move, block them
     if let Some(space) = can_win(&board, "x".to_string()) {
@@ -115,7 +147,17 @@ fn best_move(board: &Vec<String>) -> Option<usize> {
         }
     }
 
-    // fork logic
+    // Try to create a fork
+    if let Some(space) = can_fork(&board, "o".to_string()) {
+        info!("Fork at position {space}");
+        return Some(space);
+    }
+
+    // Block human fork
+    if let Some(space) = can_fork(&board, "x".to_string()) {
+        info!("Blocking human fork at {space}");
+        return Some(space);
+    }
 
     // Choose corner
     if let Some(rand_move) = choose_corner(board) {
