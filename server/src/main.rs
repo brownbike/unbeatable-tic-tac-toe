@@ -78,25 +78,22 @@ async fn calculate_move(Json(payload): Json<Game>) -> (StatusCode, Json<Game>) {
         return (StatusCode::OK, Json(new_turn));
     }
 
-    // TODO: Check if human will win on the next move.
-    // loop through the open squares and see if they win, then block them.
-
     // TODO: break these out into functions.
-    // Try to take the center square
-    if board[4].is_empty() {
-        board[4] = 'o'.to_string();
-    } else {
-        // Try to take a random corner
-        let random_move = choose_random_move(&board, vec![0, 6, 2, 8]);
-        if let Some(rand_move) = random_move {
-            board[rand_move] = 'o'.to_string();
-        } else if random_move.is_none() {
-            // Try to take a random square
-            let random_move = choose_random_move(&board, vec![3, 7, 5, 1]);
-            if let Some(rand_move) = random_move {
-                board[rand_move] = 'o'.to_string();
-            }
-        }
+
+    // TODO: see if we can win with a move
+
+    // Check if human will win on the next move.
+    if let Some(space) = can_block_move(&board) {
+        make_move(&mut board, space);
+    } else if is_space_free(&board, 4) {
+        // The center is free, let's take it
+        make_move(&mut board, 4);
+    } else if let Some(rand_move) = choose_random_move(&board, vec![0, 6, 2, 8]) {
+        // Let's prioritize a corner space
+        make_move(&mut board, rand_move);
+    } else if let Some(rand_move) = choose_random_move(&board, vec![3, 7, 5, 1]) {
+        // Let's pick a random space
+        make_move(&mut board, rand_move);
     }
 
     let new_turn = Game {
@@ -105,6 +102,25 @@ async fn calculate_move(Json(payload): Json<Game>) -> (StatusCode, Json<Game>) {
     };
 
     (StatusCode::OK, Json(new_turn))
+}
+
+fn can_block_move(board: &Vec<String>) -> Option<usize> {
+    let available_moves = possible_moves(&board, (0..8).collect());
+    for space in available_moves {
+        let mut test_board = board.clone();
+        test_board[space] = 'x'.to_string();
+        if is_winner(&test_board, 'x'.to_string()) {
+            info!("needs to be blocked!!!! {space}");
+            return Some(space);
+        }
+    }
+
+    info!("Nope. No block needed.");
+    None
+}
+
+fn make_move(board: &mut Vec<String>, space: usize) {
+    board[space] = 'o'.to_string();
 }
 
 fn is_winner(board: &Vec<String>, letter: String) -> bool {
@@ -147,10 +163,6 @@ fn choose_random_move(board: &Vec<String>, moves_list: Vec<usize>) -> Option<usi
         return None;
     }
 }
-
-// fn make_move(mut board: Vec<String>, space: usize) {
-//     board[space] = 'o'.to_string();
-// }
 
 #[derive(Serialize, Deserialize)]
 struct Game {
