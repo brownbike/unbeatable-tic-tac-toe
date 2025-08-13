@@ -71,3 +71,9 @@
 .instructions {
   font-weight: bold;
 }
+
+.game-over {
+  color: green;
+  font-size: 2em;
+  font-weight: bold;
+}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 
 type Game = {
@@ -42,14 +42,21 @@ async function calculateComputerMove(board: string[]) {
   }
 }
 
-// TODO: reset game when there's a winner/draw
-
 function App() {
   const [gameStatus, setGameStatus] = useState<GameStatusType>(
     GameStatus.NewGame
   );
   const [board, setBoard] = useState<string[]>(new Array(9).fill(""));
   const [turn, setTurn] = useState<"x" | "o">("x");
+
+  useEffect(() => {
+    if (hasWinner()) {
+      setTimeout(() => {
+        setBoard(new Array(9).fill(""));
+        setGameStatus(GameStatus.NewGame);
+      }, 1500);
+    }
+  }, [gameStatus]);
 
   // NOTE: For simplicity sake, the human is always X and the computer is always O.
   async function handleHumanTurn(e: React.MouseEvent<HTMLDivElement>) {
@@ -99,7 +106,7 @@ function App() {
           setGameStatus(GameStatus[data.status]);
         }
       }
-    }, 500);
+    }, 750);
   }
 
   async function handlePlayerAction(e: React.MouseEvent<HTMLDivElement>) {
@@ -152,13 +159,13 @@ function App() {
           {isHumanTurn() && <p className="instructions">It's X's turn</p>}
           {isComputerTurn() && <p className="instructions">It's O's turn</p>}
           {gameStatus === GameStatus.Draw && (
-            <p className="instructions">It's a Draw</p>
+            <p className="game-over">It's a Draw</p>
           )}
           {gameStatus === GameStatus.XWins && (
-            <p className="instructions">X Wins!</p>
+            <p className="game-over">X Wins!</p>
           )}
           {gameStatus === GameStatus.OWins && (
-            <p className="instructions">O wins!</p>
+            <p className="game-over">O wins!</p>
           )}
         </div>
       </div>
