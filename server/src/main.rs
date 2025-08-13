@@ -47,13 +47,12 @@ async fn calculate_move(Json(payload): Json<Game>) -> (StatusCode, Json<Game>) {
     let mut board: Vec<String> = payload.board;
     let mut status: Status = Status::InProgress;
 
-    // Check for human winner
     if is_winner(&board, "x".to_string()) {
         // Human won :(
         info!("X wins, this shouldn't happen");
         status = Status::XWins;
     } else if is_winner(&board, "0".to_string()) {
-        // Computer wins :)
+        // Computer won :)
         info!("O wins!! Computers rule, humans drool");
         status = Status::OWins;
     } else if is_draw(&board, (0..9).collect()) {
@@ -61,10 +60,11 @@ async fn calculate_move(Json(payload): Json<Game>) -> (StatusCode, Json<Game>) {
         info!("It's a Draw");
         status = Status::Draw;
     } else if let Some(space) = can_win(&board, "o".to_string()) {
-        // We can win take the square!
+        // We can win! Take the square!
         make_move(&mut board, space);
         status = Status::OWins;
     } else if let Some(space) = best_move(&board) {
+        // make some moves
         make_move(&mut board, space);
     }
 
@@ -99,26 +99,39 @@ fn best_move(board: &Vec<String>) -> Option<usize> {
         return Some(space);
     }
 
-    // The center is free, let's take it
-    if is_space_free(&board, 4) {
-        return Some(4);
+    // Opening moves
+    if is_first_human_move(&board) {
+        // If the human chooses the center square as their first move, pick a corner.
+        if !is_space_free(&board, 4) {
+            // Let's prioritize a corner space
+            info!("The human chose the center square first, play a corner");
+            return choose_corner(&board);
+        }
+
+        // The center is free, let's take it
+        if is_space_free(&board, 4) {
+            info!("play the center");
+            return Some(4);
+        }
     }
 
-    // If the human chooses the center square as their first move, pick a corner.
-    if !is_space_free(&board, 4) && possible_moves(&board, (0..9).collect()).len() == 8 {
-        // Let's prioritize a corner space
-        info!("The human chose the center square first");
-        return choose_corner(&board);
-    }
+    // fork logic
 
-    // Let's pick a random side space
-    if let Some(rand_move) = choose_random_move(&board, vec![3, 7, 5, 1]) {
-        info!("Pick a side");
+    // Choose corner
+    if let Some(rand_move) = choose_corner(board) {
+        info!("Pick a corner {rand_move}");
         return Some(rand_move);
     }
 
-    // If only corners are available, choose a corner
-    return choose_corner(&board);
+    // As a last step choose a side
+    let random_side_move: Option<usize> = choose_random_move(&board, vec![3, 7, 5, 1]);
+    info!("Pick a side {random_side_move:#?}");
+
+    random_side_move
+}
+
+fn is_first_human_move(board: &Vec<String>) -> bool {
+    possible_moves(&board, (0..9).collect()).len() == 8
 }
 
 fn choose_corner(board: &Vec<String>) -> Option<usize> {
