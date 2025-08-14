@@ -1,58 +1,28 @@
 import { useState, useEffect } from "react";
+import calculateComputerMove from "./api/calculateMoves";
 import "./App.css";
-
-type Game = {
-  board: string[];
-  status: string;
-};
 
 // Enums are no longer recommended in TS, this is the recommended workaround.
 // Personally I miss enums...
 const GameStatus = {
-  NewGame: "new-game",
-  InProgress: "in-progress",
-  XWins: "x-wins",
-  OWins: "o-wins",
-  Draw: "draw",
+  NewGame: "NewGame",
+  InProgress: "InProgress",
+  XWins: "XWins",
+  OWins: "OWins",
+  Draw: "Draw",
 } as const;
 
-type GameStatusType = (typeof GameStatus)[keyof typeof GameStatus];
-
-// TODO: Break out into api file
-async function calculateComputerMove(board: string[]) {
-  let game = {
-    board: board,
-    status: "InProgress",
-  };
-  try {
-    const requestOptions = {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(game),
-    };
-    const resp = await fetch(
-      "http://localhost:3000/calculate-move",
-      requestOptions
-    );
-    let data = await resp.json();
-
-    return data as Game;
-  } catch (e) {
-    console.error("There was an error calculating the next move: ", e);
-  }
-}
+export type GameStatusType = (typeof GameStatus)[keyof typeof GameStatus];
 
 function App() {
   const [gameStatus, setGameStatus] = useState<GameStatusType>(
     GameStatus.NewGame
   );
-  const [board, setBoard] = useState<string[]>(new Array(9).fill(""));
+  const [board, setBoard] = useState<("x" | "o")[]>(new Array(9).fill(""));
   const [turn, setTurn] = useState<"x" | "o">("x");
 
   useEffect(() => {
-    // FIXME: put `hasWinner()` back
-
-    if (gameStatus === GameStatus.Draw || gameStatus === GameStatus.OWins) {
+    if (hasWinner()) {
       setTimeout(() => {
         setBoard(new Array(9).fill(""));
         setGameStatus(GameStatus.NewGame);
@@ -75,7 +45,7 @@ function App() {
         }
 
         // Copy the board
-        let newBoard = [...board];
+        let newBoard: ("x" | "o")[] = [...board];
         // Update the board with the users move, the human is always x
         newBoard[index] = "x";
         // Update the board state
@@ -90,7 +60,7 @@ function App() {
     }
   }
 
-  async function handleComputerTurn(newBoard: string[]) {
+  async function handleComputerTurn(newBoard: ("x" | "o")[]) {
     // Adding a setTimeout to make it a little less jarring.
     setTimeout(async () => {
       let data = await calculateComputerMove(newBoard);
@@ -136,10 +106,13 @@ function App() {
     <>
       <div className="game">
         <h1 className="title">Unbeatable tic-tac-toe</h1>
-        <div className={`board ${hasWinner() ? "has-winner" : ""}`}>
+        <div
+          className={`board ${
+            hasWinner() || isComputerTurn() ? "disabled" : ""
+          }`}
+        >
           {board.map((space, i) => {
             return (
-              // TODO: break this out into a component
               <div
                 key={i}
                 className={`space ${space.toLowerCase()}`}

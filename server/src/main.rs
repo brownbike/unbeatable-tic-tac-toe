@@ -53,13 +53,14 @@ async fn calculate_move(Json(payload): Json<Game>) -> (StatusCode, Json<Game>) {
         // Computer won :)
         info!("O wins!! Computers rule, humans drool");
         status = Status::OWins;
-    } else if is_draw(&board, (0..9).collect()) {
+    } else if is_draw(&board) {
         // A draw :|
         info!("It's a Draw");
         status = Status::Draw;
     } else if let Some(winning_move) = can_win(&board, "o") {
-        // If we can win, take the square!
+        // We can win!
         make_move(&mut board, winning_move, "o");
+        info!("O wins!! Computers rule, humans drool");
         status = Status::OWins;
     } else if let Some(best_move) = minimax_move(&board) {
         // Use some fancy math to calculate the best move
@@ -75,7 +76,7 @@ async fn calculate_move(Json(payload): Json<Game>) -> (StatusCode, Json<Game>) {
 }
 
 fn can_win(board: &Vec<String>, letter: &str) -> Option<usize> {
-    let available_moves = possible_moves(&board, (0..9).collect());
+    let available_moves = possible_moves(&board);
 
     for space in available_moves {
         let mut test_board = board.clone();
@@ -103,11 +104,11 @@ fn minimax(board: &Vec<String>, depth: i32, is_maximizing: bool) -> i32 {
     }
 
     // Is it a draw?
-    if is_draw(board, (0..9).collect()) {
+    if is_draw(board) {
         return 0;
     }
 
-    let available_moves = possible_moves(board, (0..9).collect());
+    let available_moves = possible_moves(board);
 
     if is_maximizing {
         // Score the computer moves
@@ -133,7 +134,7 @@ fn minimax(board: &Vec<String>, depth: i32, is_maximizing: bool) -> i32 {
 }
 
 fn minimax_move(board: &Vec<String>) -> Option<usize> {
-    let available_moves = possible_moves(board, (0..9).collect());
+    let available_moves = possible_moves(board);
     // Start with the smallest int possible
     let mut best_score = i32::MIN;
     let mut best_move = None;
@@ -178,9 +179,10 @@ fn is_space_free(board: &Vec<String>, space: usize) -> bool {
     board[space].is_empty()
 }
 
-fn possible_moves(board: &Vec<String>, moves_list: Vec<usize>) -> Vec<usize> {
+fn possible_moves(board: &Vec<String>) -> Vec<usize> {
     let mut possible_moves: Vec<usize> = vec![];
-    for i in moves_list {
+    let move_list: Vec<usize> = (0..9).collect();
+    for i in move_list {
         if is_space_free(board, i) {
             possible_moves.push(i);
         }
@@ -188,8 +190,8 @@ fn possible_moves(board: &Vec<String>, moves_list: Vec<usize>) -> Vec<usize> {
     possible_moves
 }
 
-fn is_draw(board: &Vec<String>, moves_list: Vec<usize>) -> bool {
-    possible_moves(board, moves_list).len() == 0
+fn is_draw(board: &Vec<String>) -> bool {
+    possible_moves(board).len() == 0
 }
 
 #[derive(Serialize, Deserialize)]

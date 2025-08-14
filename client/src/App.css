@@ -16,7 +16,7 @@
   padding: 2em;
 }
 
-.board.has-winner .space {
+.board.disabled .space {
   pointer-events: none;
 }
 
